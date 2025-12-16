@@ -1,13 +1,37 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Viewport optimizado para móvil -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+
+    <!-- Título -->
+    <title>Conversor MXN · USD · ARS | Pesos & Gym</title>
+
+    <!-- Descripción -->
+    <meta
+      name="description"
+      content="Conversor rápido de monedas MXN, USD y ARS y calculadora de peso kg ↔ lbs para el gimnasio."
+    />
+
+    <!-- Iconos -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cotizador-divisas</title>
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Color barra móvil -->
+    <meta name="theme-color" content="#2563eb" />
+
+    <!-- Evitar zoom automático en iOS -->
+    <meta name="format-detection" content="telephone=no" />
   </head>
-  <body>
+
+  <body class="bg-gray-100">
     <div id="root"></div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
