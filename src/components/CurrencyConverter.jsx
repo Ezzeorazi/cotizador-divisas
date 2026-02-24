@@ -2,8 +2,8 @@ import { useState } from "react";
 
 const RATES = {
   USD: 1,
-  MXN: 18.0,
-  ARS: 1500.0,
+  MXN: 16.50,
+  ARS: 1450.0,
 };
 
 function CurrencyConverter() {
