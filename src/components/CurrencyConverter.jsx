@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useExchangeRates from "../hooks/useExchangeRates";
+import useStoredState from "../hooks/useStoredState";
+import RateSettings from "./RateSettings";
 
-const TARGETS_KEY = "currency-targets";
 const DEFAULT_TARGETS = ["USD", "MXN", "ARS"];
+const DEFAULT_SETTINGS = {
+  ars: "blue",
+  mxnMode: "casa",
+  mxnMargin: 5,
+  mxnManual: "",
+};
 
 const currencyNames = new Intl.DisplayNames(["es"], { type: "currency" });
 
@@ -21,35 +28,43 @@ function formatAmount(value) {
   }).format(value);
 }
 
-function loadTargets() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(TARGETS_KEY));
-    return Array.isArray(saved) && saved.length ? saved : DEFAULT_TARGETS;
-  } catch {
-    return DEFAULT_TARGETS;
+// Reemplaza ARS y MXN por el tipo de cambio elegido en la configuración
+function applySettings(rates, ars, mxnBase, settings) {
+  const result = { ...rates };
+
+  const arsVenta = ars[settings.ars]?.venta;
+  if (arsVenta) result.ARS = arsVenta;
+
+  if (settings.mxnMode === "casa") {
+    const margin = parseFloat(settings.mxnMargin) || 0;
+    result.MXN = mxnBase * (1 - margin / 100);
+  } else if (settings.mxnMode === "manual") {
+    result.MXN = parseFloat(settings.mxnManual) || mxnBase;
+  } else {
+    result.MXN = mxnBase;
   }
+
+  return result;
 }
 
 function CurrencyConverter() {
-  const { rates, updatedAt, status, refresh } = useExchangeRates();
+  const { rates: marketRates, ars, mxn, updatedAt, status, refresh } =
+    useExchangeRates();
   const [amount, setAmount] = useState("");
   const [from, setFrom] = useState("MXN");
-  const [targets, setTargets] = useState(loadTargets);
+  const [targets, setTargets] = useStoredState("currency-targets", DEFAULT_TARGETS);
+  const [settings, setSettings] = useStoredState("rate-settings", DEFAULT_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
-    } catch {
-      // sin almacenamiento disponible: se ignora
-    }
-  }, [targets]);
+  const mxnBase = mxn?.fix ?? mxn?.venta ?? marketRates.MXN;
+  const rates = applySettings(marketRates, ars, mxnBase, settings);
 
   const codes = useMemo(
     () =>
-      Object.keys(rates).sort((a, b) =>
+      Object.keys(marketRates).sort((a, b) =>
         currencyLabel(a).localeCompare(currencyLabel(b), "es")
       ),
-    [rates]
+    [marketRates]
   );
 
   const available = codes.filter((c) => !targets.includes(c));
@@ -147,14 +162,35 @@ function CurrencyConverter() {
         {status === "error" && (
           <p className="text-red-500">No se pudo actualizar la cotización</p>
         )}
-        <button
-          onClick={refresh}
-          disabled={status === "loading"}
-          className="text-blue-600 underline disabled:opacity-50"
-        >
-          {status === "loading" ? "Actualizando…" : "Actualizar"}
-        </button>
+        <p>
+          1 USD = {formatAmount(rates.MXN)} MXN · {formatAmount(rates.ARS)} ARS
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={refresh}
+            disabled={status === "loading"}
+            className="text-blue-600 underline disabled:opacity-50"
+          >
+            {status === "loading" ? "Actualizando…" : "Actualizar"}
+          </button>
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className="text-blue-600 underline"
+          >
+            {showSettings ? "Ocultar tipo de cambio" : "⚙️ Tipo de cambio"}
+          </button>
+        </div>
       </div>
+
+      {showSettings && (
+        <RateSettings
+          settings={settings}
+          onChange={setSettings}
+          ars={ars}
+          mxnBase={mxnBase}
+          effective={rates.MXN}
+        />
+      )}
     </>
   );
 }
